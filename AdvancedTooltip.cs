@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 using AdvancedTooltip.Settings;
 using ExileCore;
 using ExileCore.PoEMemory;
@@ -18,10 +17,8 @@ namespace AdvancedTooltip
     public class AdvancedTooltip : BaseSettingsPlugin<AdvancedTooltipSettings>
     {
         private string affix;
-        private bool canRender;
         private Entity itemEntity;
         private List<ModValue> mods = new List<ModValue>();
-        private long ModsHash;
         private Vector2N nextLine = Vector2N.Zero;
         private readonly string symbol = " X";
         private Color TColor;
@@ -43,19 +40,6 @@ namespace AdvancedTooltip
             };
 
             return true;
-        }
-
-        public override Job Tick()
-        {
-            canRender = true;
-
-            if (GameController.IsLoading)
-            {
-                canRender = false;
-                return null;
-            }
-
-            return null;
         }
 
         public override void Render()
@@ -163,8 +147,7 @@ namespace AdvancedTooltip
             if (Settings.ItemMods.Enable.Value)
             {
                 var bottomTooltip = tooltipRect.Bottom + 5;
-                Vector2 modPosition;
-                modPosition = new Vector2(tooltipRect.X + 20, bottomTooltip + 4);
+                var modPosition = new Vector2(tooltipRect.X + 20, bottomTooltip + 4);
 
                 var height = mods?.Where(x => x.Record.StatNames.Count(y => y != null) > 0)
                         .Aggregate(modPosition, (position, item) => DrawMod(item, position)).Y -
@@ -188,32 +171,21 @@ namespace AdvancedTooltip
         private Vector2 DrawMod(ModValue item, Vector2 position)
         {
             const float EPSILON = 0.001f;
-            const int MARGIN_BOTTOM = 4, MARGIN_LEFT = 50;
+            const int MARGIN_BOTTOM = 4;
             var oldPosition = position;
             var settings = Settings.ItemMods;
             var x = 0f;
 
-            switch (item.AffixType)
+            var (text, color) = item.AffixType switch
             {
-                case ModType.Prefix:
-                    nextLine = Graphics.DrawText("[P]", position, settings.PrefixColor);
-                    break;
-                case ModType.Suffix:
-                    nextLine = Graphics.DrawText("[S]", position, settings.SuffixColor);
-                    break;
-                case ModType.Corrupted:
-                    nextLine = Graphics.DrawText("[C]", position, new Color(220, 20, 60));
-                    break;
-                case ModType.Unique:
-                    nextLine = Graphics.DrawText("[U]", position, new Color(255, 140, 0));
-                    break;
-                case ModType.Enchantment:
-                    nextLine = Graphics.DrawText("[E]", position, new Color(255, 0, 255));
-                    break;
-                default:
-                    nextLine = Graphics.DrawText("[?]", position, new Color(211, 211, 211));
-                    break;
-            }
+                ModType.Prefix => ("[P]", settings.PrefixColor.Value),
+                ModType.Suffix => ("[S]", settings.SuffixColor.Value),
+                ModType.Corrupted => ("[C]", new Color(220, 20, 60)),
+                ModType.Unique => ("[U]", new Color(255, 140, 0)),
+                ModType.Enchantment => ("[E]", new Color(255, 0, 255)),
+                _ => ("[?]", new Color(211, 211, 211))
+            };
+            nextLine = Graphics.DrawText(text, position, color);
 
             x += nextLine.X;
 
@@ -227,13 +199,11 @@ namespace AdvancedTooltip
                     {
                         case ModType.Prefix:
                             nextLine = Graphics.DrawText(affix, position.Translate(x), settings.PrefixColor);
-                            if (!TColors.TryGetValue(item.Tier, out TColor)) TColor = settings.PrefixColor;
-
+                            TColor = TColors.GetValueOrDefault(item.Tier, settings.PrefixColor);
                             break;
                         case ModType.Suffix:
                             nextLine = Graphics.DrawText(affix, position.Translate(x), settings.SuffixColor);
-                            if (!TColors.TryGetValue(item.Tier, out TColor)) TColor = settings.SuffixColor;
-
+                            TColor = TColors.GetValueOrDefault(item.Tier, settings.SuffixColor);
                             break;
                     }
                 }
@@ -242,42 +212,38 @@ namespace AdvancedTooltip
                 position.Y += textSize.Y;
             }
 
+            for (var i = 0; i < 4; i++)
             {
-                for (var i = 0; i < 4; i++)
+                var range = item.Record.StatRange[i];
+                if (range.Min == 0 && range.Max == 0) continue;
+
+                var stat = item.Record.StatNames[i];
+                var value = item.StatValue[i];
+                if (value <= -1000 || stat == null) continue;
+
+                var noSpread = !range.HasSpread();
+                var line2 = string.Format(noSpread ? "{0}" : "[{1}] {0}", stat, range);
+                var statText = stat.ValueToString(value);
+                Vector2N txSize;
+
+                if (item.AffixType == ModType.Unique)
                 {
-                    var range = item.Record.StatRange[i];
-                    if (range.Min == 0 && range.Max == 0) continue;
-
-                    var stat = item.Record.StatNames[i];
-                    var value = item.StatValue[i];
-                    if (value <= -1000 || stat == null) continue;
-
-                    var noSpread = !range.HasSpread();
-                    var line2 = string.Format(noSpread ? "{0}" : "[{1}] {0}", stat, range);
-                    var statText = stat.ValueToString(value);
-                    Vector2N txSize;
-
-                    if (item.AffixType == ModType.Unique)
-                    {
-                        txSize = Graphics.DrawText(statText, position.Translate(x + 30), Color.Gainsboro,
-                            FontAlign.Right);
-                        var drawText = Graphics.DrawText(line2, position.Translate(x + 40), Color.Gainsboro);
-                    }
-                    else
-                    {
-                        txSize = Graphics.DrawText(statText, position.Translate(x), Color.Gainsboro, FontAlign.Right);
-                        var drawText = Graphics.DrawText(line2, position.Translate(+40), Color.Gainsboro);
-                    }
-
-                    position.Y += txSize.Y;
+                    txSize = Graphics.DrawText(statText, position.Translate(x + 30), Color.Gainsboro,
+                        FontAlign.Right);
+                    Graphics.DrawText(line2, position.Translate(x + 40), Color.Gainsboro);
+                }
+                else
+                {
+                    txSize = Graphics.DrawText(statText, position.Translate(x), Color.Gainsboro, FontAlign.Right);
+                    Graphics.DrawText(line2, position.Translate(+40), Color.Gainsboro);
                 }
 
-                return Math.Abs(position.Y - oldPosition.Y) > EPSILON
-                    ? position.Translate(0, MARGIN_BOTTOM)
-                    : oldPosition;
+                position.Y += txSize.Y;
             }
 
-            return position;
+            return Math.Abs(position.Y - oldPosition.Y) > EPSILON
+                       ? position.Translate(0, MARGIN_BOTTOM)
+                       : oldPosition;
         }
 
         private void DrawWeaponDps(RectangleF clientRect)
