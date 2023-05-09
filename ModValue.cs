@@ -39,14 +39,10 @@ namespace AdvancedTooltip
                     if (!keyrcd.SequenceEqual(keyRcd))
                         continue;
 
-                    int baseChance;
-
-                    if (!tmp.TagChances.TryGetValue(baseClassName, out baseChance))
+                    if (!tmp.TagChances.TryGetValue(baseClassName, out var baseChance))
                         baseChance = -1;
 
-                    int defaultChance;
-
-                    if (!tmp.TagChances.TryGetValue("default", out defaultChance))
+                    if (!tmp.TagChances.TryGetValue("default", out var defaultChance))
                         defaultChance = 0;
 
                     var tagChance = -1;
@@ -144,7 +140,7 @@ namespace AdvancedTooltip
                 {
                     /*var tierNumber = Record.Tier.Split(' ')[1];
                      tierNumber = tierNumber.Replace('M', ' ');*/
-                    var tierNumber = new string(Record.Tier.Where(x => char.IsDigit(x)).ToArray());
+                    var tierNumber = new string(Record.Tier.Where(char.IsDigit).ToArray());
 
                     if (int.TryParse(tierNumber, out var result))
                     {

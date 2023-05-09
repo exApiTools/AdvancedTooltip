@@ -7,8 +7,9 @@ using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
-using SharpDX;
 using GameOffsets;
+using SharpDX;
+using Vector2 = System.Numerics.Vector2;
 
 namespace AdvancedTooltip
 {
@@ -20,7 +21,6 @@ namespace AdvancedTooltip
         private long _lastItemAddress;
         private Element _regularModsElement;
         private List<ModTierInfo> _mods = new List<ModTierInfo>();
-        private Element _tooltip;
         private readonly Regex _modTypeRegex = new Regex(@"\<rgb\(\d+\,\d+\,\d+\)\>\{([\w ]+)\}", RegexOptions.Compiled);
 
         public FastModsModule(Graphics graphics, ItemModsSettings modsSettings)
@@ -44,7 +44,7 @@ namespace AdvancedTooltip
 
                 if (fixDrawPos != Vector2.Zero)
                 {
-                    var offset = tooltip.GetClientRectCache.TopLeft - _regularModsElement.GetClientRectCache.TopLeft;
+                    var offset = tooltip.GetClientRectCache.TopLeft.ToVector2Num() - _regularModsElement.GetClientRectCache.TopLeft.ToVector2Num();
                     drawPos = fixDrawPos - offset;
                 }
 
@@ -89,7 +89,7 @@ namespace AdvancedTooltip
                     i += modTierInfo.ModLines - 1;
                 }
             }
-            catch (Exception e)
+            catch
             {
                 //ignored   
             }
@@ -97,7 +97,6 @@ namespace AdvancedTooltip
 
         private void InitializeElements(Element tooltip)
         {
-            _tooltip = tooltip;
             _regularModsElement = null;
 
             var modsRoot = tooltip.GetChildAtIndex(1);
@@ -164,20 +163,20 @@ namespace AdvancedTooltip
                     var color = isPrefix ? _modsSettings.PrefixColor : _modsSettings.SuffixColor;
 
                     var isRank = false;
-                    const string TIER = "(Tier: ";
-                    var tierPos = extendedModsLine.IndexOf(TIER);
+                    const string tierPrefix = "(Tier: ";
+                    var tierPos = extendedModsLine.IndexOf(tierPrefix, StringComparison.Ordinal);
                     if (tierPos != -1)
                     {
-                        tierPos += TIER.Length;
+                        tierPos += tierPrefix.Length;
                     }
                     else
                     {
-                        const string RANK = "(Rank: ";
-                        tierPos = extendedModsLine.IndexOf(RANK);
+                        const string rankPrefix = "(Rank: ";
+                        tierPos = extendedModsLine.IndexOf(rankPrefix, StringComparison.Ordinal);
 
                         if (tierPos != -1)
                         {
-                            tierPos += RANK.Length;
+                            tierPos += rankPrefix.Length;
                             isRank = true;
                         }
                     }
@@ -214,60 +213,22 @@ namespace AdvancedTooltip
                         foreach (Match modTypeMatch in modTypesMatches)
                         {
                             var modTypeValue = modTypeMatch.Groups[1].Value;
-                            var modTypeColor = Color.Gray;
-
-
-                            switch (modTypeValue)
+                            var modTypeColor = modTypeValue switch
                             {
-                                case "Fire":
-                                    modTypeColor = Color.Red;
-                                    break;
-
-                                case "Cold":
-                                    modTypeColor = new Color(41, 102, 241);
-                                    break;
-
-                                case "Life":
-                                    modTypeColor = Color.Magenta;
-                                    break;
-
-                                case "Lightning":
-                                    modTypeColor = Color.Yellow;
-                                    break;
-
-                                case "Physical":
-                                    modTypeColor = new Color(225, 170, 20);
-                                    break;
-
-                                case "Critical":
-                                    modTypeColor = new Color(168, 220, 26);
-                                    break;
-
-                                case "Mana":
-                                    modTypeColor = new Color(20, 240, 255);
-                                    break;
-
-                                case "Attack":
-                                    modTypeColor = new Color(240, 100, 30);
-                                    break;
-
-                                case "Speed":
-                                    modTypeColor = new Color(0, 255, 192);
-                                    break;
-
-                                case "Caster":
-                                    modTypeColor = new Color(216, 0, 255);
-                                    break;
-
-                                case "Elemental":
-                                    modTypeColor = Color.White;
-                                    break;
-
-                                case "Gem Level":
-                                    modTypeColor = new Color(200, 230, 160);
-                                    break;
-                            }
-
+                                "Fire" => Color.Red,
+                                "Cold" => new Color(41, 102, 241),
+                                "Life" => Color.Magenta,
+                                "Lightning" => Color.Yellow,
+                                "Physical" => new Color(225, 170, 20),
+                                "Critical" => new Color(168, 220, 26),
+                                "Mana" => new Color(20, 240, 255),
+                                "Attack" => new Color(240, 100, 30),
+                                "Speed" => new Color(0, 255, 192),
+                                "Caster" => new Color(216, 0, 255),
+                                "Elemental" => Color.White,
+                                "Gem Level" => new Color(200, 230, 160),
+                                _ => Color.Gray
+                            };
 
                             currentModTierInfo.ModTypes.Add(new ModType(modTypeValue, modTypeColor));
                         }

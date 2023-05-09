@@ -10,7 +10,7 @@ using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Enums;
 using ExileCore.Shared.Helpers;
 using SharpDX;
-using Vector2N = System.Numerics.Vector2;
+using Vector2 = System.Numerics.Vector2;
 
 namespace AdvancedTooltip
 {
@@ -19,7 +19,7 @@ namespace AdvancedTooltip
         private string affix;
         private Entity itemEntity;
         private List<ModValue> mods = new List<ModValue>();
-        private Vector2N nextLine = Vector2N.Zero;
+        private Vector2 nextLine = Vector2.Zero;
         private readonly string symbol = " X";
         private Color TColor;
         private Dictionary<int, Color> TColors;
@@ -36,7 +36,9 @@ namespace AdvancedTooltip
             _fastMods = new FastModsModule(Graphics, Settings.ItemMods);
             TColors = new Dictionary<int, Color>
             {
-                {1, Settings.ItemMods.T1Color}, {2, Settings.ItemMods.T2Color}, {3, Settings.ItemMods.T3Color}
+                {1, Settings.ItemMods.T1Color}, 
+                {2, Settings.ItemMods.T2Color}, 
+                {3, Settings.ItemMods.T3Color},
             };
 
             return true;
@@ -74,10 +76,10 @@ namespace AdvancedTooltip
 
             Draw(tooltip, poeEntity);
 
-            if (inventoryItemIcon.ItemInChatTooltip.Address != 0)
+            if (inventoryItemIcon.Tooltip.Address != 0)
             {
-                var tooltipReal = inventoryItemIcon.ItemInChatTooltip.GetChildAtIndex(1);
-                var fixDrawPos =  Input.MousePosition + new Vector2(80, 0);
+                var tooltipReal = inventoryItemIcon.Tooltip.GetChildAtIndex(1);
+                var fixDrawPos =  Input.MousePositionNum + new Vector2(80, 0);
 
                 _fastMods.DrawUiHoverFastMods(tooltipReal, fixDrawPos);
             }
@@ -104,12 +106,8 @@ namespace AdvancedTooltip
                     itemMods.Any(x => string.IsNullOrEmpty(x.RawName) && string.IsNullOrEmpty(x.Name)))
                     return;
 
-                mods = itemMods
-                    ?.Select(
-                        item => new ModValue(item, GameController.Files, modsComponent.ItemLevel, 
-                            GameController.Files.BaseItemTypes.Translate(poeEntity.Path))
-                        )
-                    ?.ToList();
+                mods = itemMods.Select(item => new ModValue(item, GameController.Files, modsComponent.ItemLevel,
+                    GameController.Files.BaseItemTypes.Translate(poeEntity.Path))).ToList();
 
                 itemEntity = poeEntity;
             }
@@ -137,7 +135,7 @@ namespace AdvancedTooltip
             {
                 var itemLevel = Convert.ToString(modsComponent?.ItemLevel ?? 0);
                 var imageSize = Settings.ItemLevel.TextSize + 10;
-                Graphics.DrawText(itemLevel, tooltipRect.TopLeft.Translate(2, 2), Settings.ItemLevel.TextColor);
+                Graphics.DrawText(itemLevel, tooltipRect.TopLeft.TranslateToNum(2, 2), Settings.ItemLevel.TextColor);
 
                 Graphics.DrawImage("menu-colors.png",
                     new RectangleF(tooltipRect.TopLeft.X - 2, tooltipRect.TopLeft.Y - 2, imageSize, imageSize),
@@ -170,8 +168,8 @@ namespace AdvancedTooltip
 
         private Vector2 DrawMod(ModValue item, Vector2 position)
         {
-            const float EPSILON = 0.001f;
-            const int MARGIN_BOTTOM = 4;
+            const float epsilon = 0.001f;
+            const int marginBottom = 4;
             var oldPosition = position;
             var settings = Settings.ItemMods;
             var x = 0f;
@@ -249,7 +247,7 @@ namespace AdvancedTooltip
                 var noSpread = !range.HasSpread();
                 var line2 = string.Format(noSpread ? "{0}" : "[{1}] {0}", stat, range);
                 var statText = stat.ValueToString(value);
-                Vector2N txSize;
+                Vector2 txSize;
 
                 if (item.AffixType == ModType.Unique)
                 {
@@ -266,8 +264,8 @@ namespace AdvancedTooltip
                 position.Y += txSize.Y;
             }
 
-            return Math.Abs(position.Y - oldPosition.Y) > EPSILON
-                       ? position.Translate(0, MARGIN_BOTTOM)
+            return Math.Abs(position.Y - oldPosition.Y) > epsilon
+                       ? position.Translate(0, marginBottom)
                        : oldPosition;
         }
 
@@ -280,8 +278,8 @@ namespace AdvancedTooltip
             var cntDamages = Enum.GetValues(typeof(DamageType)).Length;
             var doubleDpsPerStat = new float[cntDamages];
             float physDmgMultiplier = 1;
-            var PhysHi = weapon.DamageMax;
-            var PhysLo = weapon.DamageMin;
+            var physHi = weapon.DamageMax;
+            var physLo = weapon.DamageMin;
 
             foreach (var mod in mods)
             {
@@ -306,10 +304,10 @@ namespace AdvancedTooltip
                             break;
 
                         case "local_minimum_added_physical_damage":
-                            PhysLo += value;
+                            physLo += value;
                             break;
                         case "local_maximum_added_physical_damage":
-                            PhysHi += value;
+                            physHi += value;
                             break;
 
                         case "local_minimum_added_fire_damage":
@@ -352,15 +350,15 @@ namespace AdvancedTooltip
             var component = itemEntity.GetComponent<Quality>();
             if (component == null) return;
             physDmgMultiplier += component.ItemQuality / 100f;
-            PhysLo = (int) Math.Round(PhysLo * physDmgMultiplier);
-            PhysHi = (int) Math.Round(PhysHi * physDmgMultiplier);
-            doubleDpsPerStat[(int) DamageType.Physical] = PhysLo + PhysHi;
+            physLo = (int) Math.Round(physLo * physDmgMultiplier);
+            physHi = (int) Math.Round(physHi * physDmgMultiplier);
+            doubleDpsPerStat[(int) DamageType.Physical] = physLo + physHi;
 
             aSpd = (float) Math.Round(aSpd, 2);
             var pDps = doubleDpsPerStat[(int) DamageType.Physical] / 2 * aSpd;
             float eDps = 0;
             var firstEmg = 0;
-            Color DpsColor = settings.pDamageColor;
+            Color dpsColor = settings.PhysicalDamageColor;
 
             for (var i = 1; i < cntDamages; i++)
             {
@@ -370,28 +368,28 @@ namespace AdvancedTooltip
                 if (firstEmg == 0)
                 {
                     firstEmg = i;
-                    DpsColor = elementalDmgColors[i];
+                    dpsColor = elementalDmgColors[i];
                 }
                 else
-                    DpsColor = settings.eDamageColor;
+                    dpsColor = settings.ElementalDamageColor;
             }
 
             var textPosition = new Vector2(clientRect.Right - 15, clientRect.Y + 1);
             var pDpsSize = pDps > 0
                 ? Graphics.DrawText(pDps.ToString("#.#"), textPosition, FontAlign.Right)
-                : Vector2N.Zero;
+                : Vector2.Zero;
 
             var eDpsSize = eDps > 0
-                ? Graphics.DrawText(eDps.ToString("#.#"), textPosition.Translate(0, pDpsSize.Y), DpsColor,
+                ? Graphics.DrawText(eDps.ToString("#.#"), textPosition.Translate(0, pDpsSize.Y), dpsColor,
                     FontAlign.Right)
-                : Vector2N.Zero;
+                : Vector2.Zero;
 
             var dps = pDps + eDps;
 
             var dpsSize = dps > 0
                 ? Graphics.DrawText(dps.ToString("#.#"), textPosition.Translate(0, pDpsSize.Y + eDpsSize.Y),
                     Color.White, FontAlign.Right)
-                : Vector2N.Zero;
+                : Vector2.Zero;
 
             var dpsTextPosition = textPosition.Translate(0, pDpsSize.Y + eDpsSize.Y + dpsSize.Y);
             Graphics.DrawText("dps", dpsTextPosition, settings.TextColor, FontAlign.Right);
