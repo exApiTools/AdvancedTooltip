@@ -183,8 +183,33 @@ namespace AdvancedTooltip
                 ModType.Corrupted => ("[C]", new Color(220, 20, 60)),
                 ModType.Unique => ("[U]", new Color(255, 140, 0)),
                 ModType.Enchantment => ("[E]", new Color(255, 0, 255)),
+                ModType.Nemesis => ("[NEM]", new Color(255, 20, 147)),
+                ModType.BloodLines => ("[BLD]", new Color(0, 128, 0)),
+                ModType.Torment => ("[TOR]", new Color(178, 34, 34)),
+                ModType.Tempest => ("[TEM]", new Color(65, 105, 225)),
+                ModType.Talisman => ("[TAL]", new Color(218, 165, 32)),
+                ModType.EssenceMonster => ("[ESS]", new Color(139, 0, 139)),
+                ModType.Bestiary => ("[BES]", new Color(255, 99, 71)),
+                ModType.DelveArea => ("[DEL]", new Color(47, 79, 79)),
+                ModType.SynthesisA => ("[SYN]", new Color(255, 105, 180)),
+                ModType.SynthesisGlobals => ("[SGS]", new Color(186, 85, 211)),
+                ModType.SynthesisBonus => ("[SYB]", new Color(100, 149, 237)),
+                ModType.Blight => ("[BLI]", new Color(0, 100, 0)),
+                ModType.BlightTower => ("[BLT]", new Color(0, 100, 0)),
+                ModType.MonsterAffliction => ("[MAF]", new Color(123, 104, 238)),
+                ModType.FlaskEnchantmentEnkindling => ("[FEE]", new Color(255, 165, 0)),
+                ModType.FlaskEnchantmentInstilling => ("[FEI]", new Color(255, 165, 0)),
+                ModType.ExpeditionLogbook => ("[LOG]", new Color(218, 165, 32)),
+                ModType.ScourgeUpside => ("[SCU]", new Color(218, 165, 32)),
+                ModType.ScourgeDownside => ("[SCD]", new Color(218, 165, 32)),
+                ModType.ScourgeMap => ("[SCM]", new Color(218, 165, 32)),
+                ModType.ExarchImplicit => ("[EXI]", new Color(255, 69, 0)),
+                ModType.EaterImplicit => ("[EAT]", new Color(255, 69, 0)),
+                ModType.WeaponTree => ("[WTR]", new Color(254, 114, 53)),
+                ModType.WeaponTreeRecombined => ("[WTRC]", new Color(254, 114, 53)),
                 _ => ("[?]", new Color(211, 211, 211))
             };
+
             nextLine = Graphics.DrawText(text, position, color);
 
             x += nextLine.X;
