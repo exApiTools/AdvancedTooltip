@@ -1,10 +1,11 @@
-using ExileCore.Shared.Interfaces;
+using ExileCore.Shared.Attributes;
 using ExileCore.Shared.Nodes;
 using SharpDX;
 
 namespace AdvancedTooltip
 {
-    public class WeaponDpsSettings : ISettings
+    [Submenu]
+    public class WeaponDpsSettings
     {
         public ToggleNode Enable { get; set; } = new(false);
 

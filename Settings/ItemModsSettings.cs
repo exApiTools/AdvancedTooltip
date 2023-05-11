@@ -1,32 +1,22 @@
 using ExileCore.Shared.Attributes;
-using ExileCore.Shared.Interfaces;
 using ExileCore.Shared.Nodes;
 using SharpDX;
 
 namespace AdvancedTooltip.Settings
 {
-    public class ItemModsSettings : ISettings
+    [Submenu]
+    public class ItemModsSettings
     {
-        public ItemModsSettings()
-        {
-            Enable = new ToggleNode(true);
-            ModTextSize = new RangeNode<int>(13, 10, 50);
-            BackgroundColor = new ColorBGRA(0, 0, 0, 220);
-            PrefixColor = new ColorBGRA(136, 136, 255, 255);
-            SuffixColor = new ColorBGRA(0, 206, 209, 255);
-            T1Color = new ColorBGRA(255, 0, 255, 255);
-            T2Color = new ColorBGRA(255, 255, 0, 255);
-            T3Color = new ColorBGRA(0, 255, 0, 255);
-        }
-
-        [Menu("Enabled")]
-        public ToggleNode Enable { get; set; }
-        public RangeNode<int> ModTextSize { get; set; }
-        public ColorNode BackgroundColor { get; set; }
-        public ColorNode PrefixColor { get; set; }
-        public ColorNode SuffixColor { get; set; }
-        public ColorNode T1Color { get; set; }
-        public ColorNode T2Color { get; set; }
-        public ColorNode T3Color { get; set; }
+        public ToggleNode Enable { get; set; } = new(true);
+        public ToggleNode EnableFastMods { get; set; } = new ToggleNode(true);
+        public ToggleNode EnableFastModsTags { get; set; } = new ToggleNode(true);
+        public ToggleNode ShowModNames { get; set; } = new ToggleNode(true);
+        public ToggleNode StartStatsOnSameLine { get; set; } = new ToggleNode(false);
+        public ColorNode BackgroundColor { get; set; } = new ColorBGRA(0, 0, 0, 220);
+        public ColorNode PrefixColor { get; set; } = new ColorBGRA(136, 136, 255, 255);
+        public ColorNode SuffixColor { get; set; } = new ColorBGRA(0, 206, 209, 255);
+        public ColorNode T1Color { get; set; } = new ColorBGRA(255, 0, 255, 255);
+        public ColorNode T2Color { get; set; } = new ColorBGRA(255, 255, 0, 255);
+        public ColorNode T3Color { get; set; } = new ColorBGRA(0, 255, 0, 255);
     }
 }

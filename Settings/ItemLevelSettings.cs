@@ -1,24 +1,16 @@
 using ExileCore.Shared.Attributes;
-using ExileCore.Shared.Interfaces;
 using ExileCore.Shared.Nodes;
 using SharpDX;
 
 namespace AdvancedTooltip.Settings
 {
-    public class ItemLevelSettings : ISettings
+    [Submenu]
+    public class ItemLevelSettings
     {
-        public ItemLevelSettings()
-        {
-            Enable = new ToggleNode(true);
-            TextSize = new RangeNode<int>(16, 10, 50);
-            TextColor = new ColorBGRA(255, 255, 0, 255);
-            BackgroundColor = new ColorBGRA(0, 0, 0, 230);
-        }
+        public ToggleNode Enable { get; set; } = new(true);
 
-        [Menu("Enabled")]
-        public ToggleNode Enable { get; set; }
-        public RangeNode<int> TextSize { get; set; }
-        public ColorNode TextColor { get; set; }
-        public ColorNode BackgroundColor { get; set; }
+        public RangeNode<int> TextSize { get; set; } = new(16, 10, 50);
+        public ColorNode TextColor { get; set; } = new ColorBGRA(255, 255, 0, 255);
+        public ColorNode BackgroundColor { get; set; } = new ColorBGRA(0, 0, 0, 230);
     }
 }

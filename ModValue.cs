@@ -28,7 +28,7 @@ namespace AdvancedTooltip
                 var tierFound = false;
                 TotalTiers = 0;
                 var keyRcd = Record.Key.Where(char.IsLetter).ToArray();
-                var optimizedListTiers = allTiers.Where(x => x.Key.StartsWith(new string(keyRcd))).ToList();
+                var optimizedListTiers = allTiers.Where(x => x.Key.StartsWith(new string(keyRcd), StringComparison.Ordinal)).ToList();
 
                 foreach (var tmp in optimizedListTiers)
                 {

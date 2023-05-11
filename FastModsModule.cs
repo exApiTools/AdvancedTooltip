@@ -29,24 +29,18 @@ namespace AdvancedTooltip
             _modsSettings = modsSettings;
         }
 
-        public void DrawUiHoverFastMods(Element tooltip, Vector2 fixDrawPos)
+        public void DrawUiHoverFastMods(Element tooltip)
         {
             try
             {
                 InitializeElements(tooltip);
 
-                if (_regularModsElement == null || !_regularModsElement.IsVisibleLocal)
+                if (_regularModsElement is not { IsVisibleLocal: true })
                     return;
 
                 var rect = _regularModsElement.GetClientRectCache;
-                var drawPos = new Vector2(tooltip.GetClientRectCache.X - 3, rect.Top);
+                var drawPos = new Vector2(tooltip.GetClientRectCache.X - 3, rect.TopLeft.Y);
                 var height = rect.Height / _mods.Count;
-
-                if (fixDrawPos != Vector2.Zero)
-                {
-                    var offset = tooltip.GetClientRectCache.TopLeft.ToVector2Num() - _regularModsElement.GetClientRectCache.TopLeft.ToVector2Num();
-                    drawPos = fixDrawPos - offset;
-                }
 
                 for (var i = 0; i < _mods.Count; i++)
                 {
@@ -61,21 +55,23 @@ namespace AdvancedTooltip
 
                     textSize.X += 5;
                     textPos.X -= textSize.X + 5;
-                
+
                     var initialTextSize = textSize;
 
-
-                    foreach (var modType in modTierInfo.ModTypes)
+                    if (_modsSettings.EnableFastModsTags)
                     {
-                        var modTypetextSize = _graphics.DrawText(modType.Name, textPos, modType.Color,
-                            FontAlign.Right | FontAlign.VerticalCenter);
+                        foreach (var modType in modTierInfo.ModTypes)
+                        {
+                            var modTypeTextSize = _graphics.DrawText(modType.Name, textPos, modType.Color,
+                                FontAlign.Right | FontAlign.VerticalCenter);
 
-                        textSize.X += modTypetextSize.X + 5;
-                        textPos.X -= modTypetextSize.X + 5;
+                            textSize.X += modTypeTextSize.X + 5;
+                            textPos.X -= modTypeTextSize.X + 5;
+                        }
+
+                        if (modTierInfo.ModTypes.Count > 0)
+                            textSize.X += 5;
                     }
-
-                    if(modTierInfo.ModTypes.Count > 0)
-                        textSize.X += 5;
 
                     var rectangleF = new RectangleF(drawPos.X - textSize.X - 3, drawPos.Y, textSize.X + 6,
                         height * modTierInfo.ModLines);
@@ -108,7 +104,7 @@ namespace AdvancedTooltip
             for (var i = modsRoot.Children.Count - 1; i >= 0; i--)
             {
                 var element = modsRoot.Children[i];
-                if (!string.IsNullOrEmpty(element.Text) && element.Text.StartsWith("<smaller"))
+                if (!string.IsNullOrEmpty(element.Text) && element.Text.StartsWith("<smaller", StringComparison.Ordinal))
                 {
                     extendedModsElement = element;
                     _regularModsElement = modsRoot.Children[i - 1];
@@ -125,17 +121,23 @@ namespace AdvancedTooltip
             }
         }
 
+        private static readonly Regex FracturedRegex = new Regex(@"\<fractured\>\{([^\n]*\n[^\n]*)\}\n", RegexOptions.Compiled);
+
+        private static string RemoveFractured(string x)
+        {
+            return FracturedRegex.Replace(x, "$1\n");
+        }
+
         private void ParseItemHover(Element tooltip, Element extendedModsElement)
         {
             _mods.Clear();
             var extendedModsStr =
                 NativeStringReader.ReadString(extendedModsElement.Address + EntityLabelMapOffsets.LabelOffset, tooltip.M, 5000);
-            var extendedModsLines = extendedModsStr.Replace("\r\n", "\n").Split('\n');
+            var extendedModsLines = RemoveFractured(extendedModsStr.Replace("\r\n", "\n")).Split('\n');
 
             var regularModsStr =
                 NativeStringReader.ReadString(_regularModsElement.Address + EntityLabelMapOffsets.LabelOffset, tooltip.M, 5000);
-            var regularModsLines = regularModsStr.Replace("\r\n", "\n").Split('\n');
-
+            var regularModsLines = RemoveFractured(regularModsStr.Replace("\r\n", "\n")).Split('\n');
 
             ModTierInfo currentModTierInfo = null;
 
@@ -143,12 +145,12 @@ namespace AdvancedTooltip
 
             foreach (var extendedModsLine in extendedModsLines)
             {
-                if (extendedModsLine.StartsWith("<italic>"))
+                if (extendedModsLine.StartsWith("<italic>", StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                if (extendedModsLine.StartsWith("<smaller>") || extendedModsLine.StartsWith("<crafted>"))
+                if (extendedModsLine.StartsWith("<smaller>", StringComparison.Ordinal) || extendedModsLine.StartsWith("<crafted>", StringComparison.Ordinal))
                 {
                     var isPrefix = extendedModsLine.Contains("Prefix");
                     var isSuffix = extendedModsLine.Contains("Suffix");
@@ -160,7 +162,7 @@ namespace AdvancedTooltip
                     }
 
                     var affix = isPrefix ? "P" : "S";
-                    var color = isPrefix ? _modsSettings.PrefixColor : _modsSettings.SuffixColor;
+                    Color color = isPrefix ? _modsSettings.PrefixColor : _modsSettings.SuffixColor;
 
                     var isRank = false;
                     const string tierPrefix = "(Tier: ";
@@ -191,12 +193,13 @@ namespace AdvancedTooltip
                         else
                             affix += tier;
 
-                        if (tier == 1)
-                            color = _modsSettings.T1Color.Value;
-                        else if (tier == 2)
-                            color = _modsSettings.T2Color.Value;
-                        else if (tier == 3)
-                            color = _modsSettings.T3Color.Value;
+                        color = tier switch
+                        {
+                            1 => _modsSettings.T1Color,
+                            2 => _modsSettings.T2Color,
+                            3 => _modsSettings.T3Color,
+                            _ => color
+                        };
                     }
                     else if (extendedModsLine.Contains("Essence"))
                     {
@@ -234,12 +237,11 @@ namespace AdvancedTooltip
                         }
                     }
 
-
                     continue;
                 }
 
 
-                if (extendedModsLine.StartsWith("<") && !char.IsLetterOrDigit(extendedModsLine[0]))
+                if (extendedModsLine.StartsWith("<", StringComparison.Ordinal) && !char.IsLetterOrDigit(extendedModsLine[0]))
                 {
                     currentModTierInfo = null;
                     continue;
@@ -251,7 +253,7 @@ namespace AdvancedTooltip
                     modLine = Regex.Replace(modLine, @"[\d-.]+", "#");
                     modLine = Regex.Replace(modLine, @"\s\([\d]+% Increased\)", string.Empty);
                     modLine = modLine.Replace(" (#% Increased)", string.Empty);
-                    if (modLine.StartsWith("+"))
+                    if (modLine.StartsWith("+", StringComparison.Ordinal))
                         modLine = modLine.Substring(1);
 
                     if (!modsDict.ContainsKey(modLine))
@@ -265,7 +267,7 @@ namespace AdvancedTooltip
             foreach (var regularModsLine in regularModsLines)
             {
                 var modFixed = regularModsLine;
-                if (modFixed.StartsWith("+"))
+                if (modFixed.StartsWith("+", StringComparison.Ordinal))
                     modFixed = modFixed.Substring(1);
 
                 modFixed = Regex.Replace(modFixed, @"[\d-.]+", "#");
