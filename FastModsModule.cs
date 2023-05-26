@@ -18,7 +18,7 @@ namespace AdvancedTooltip
     {
         private readonly Graphics _graphics;
         private readonly ItemModsSettings _modsSettings;
-        private long _lastItemAddress;
+        private long _lastTooltipAddress;
         private Element _regularModsElement;
         private List<ModTierInfo> _mods = new List<ModTierInfo>();
         private readonly Regex _modTypeRegex = new Regex(@"\<rgb\(\d+\,\d+\,\d+\)\>\{([\w ]+)\}", RegexOptions.Compiled);
@@ -93,51 +93,58 @@ namespace AdvancedTooltip
 
         private void InitializeElements(Element tooltip)
         {
-            _regularModsElement = null;
-
             var modsRoot = tooltip.GetChildAtIndex(1);
 
             if (modsRoot == null)
                 return;
 
             Element extendedModsElement = null;
+            Element regularModsElement = null;
             for (var i = modsRoot.Children.Count - 1; i >= 0; i--)
             {
                 var element = modsRoot.Children[i];
-                if (!string.IsNullOrEmpty(element.Text) && element.Text.StartsWith("<smaller", StringComparison.Ordinal))
+                var elementText = element.Text;
+                if (!string.IsNullOrEmpty(elementText) &&
+                    (elementText.StartsWith("<smaller>", StringComparison.Ordinal) ||
+                     elementText.StartsWith("<fractured>{<smaller>", StringComparison.Ordinal)) &&
+                    !element.TextNoTags.StartsWith("Allocated Crucible", StringComparison.Ordinal))
                 {
                     extendedModsElement = element;
-                    _regularModsElement = modsRoot.Children[i - 1];
+                    regularModsElement = modsRoot.Children[i - 1];
                     break;
                 }
             }
 
-            if (_regularModsElement == null)
-                return;
-            if (_lastItemAddress != tooltip.Address)
+            if (regularModsElement == null)
             {
-                _lastItemAddress = tooltip.Address;
+                _regularModsElement = null;
+                _lastTooltipAddress = default;
+                return;
+            }
+            if (_lastTooltipAddress != tooltip.Address ||
+                _regularModsElement?.Address != regularModsElement.Address)
+            {
+                _lastTooltipAddress = tooltip.Address;
+                _regularModsElement = regularModsElement;
                 ParseItemHover(tooltip, extendedModsElement);
             }
         }
 
-        private static readonly Regex FracturedRegex = new Regex(@"\<fractured\>\{([^\n]*\n[^\n]*)\}\n", RegexOptions.Compiled);
+        private static readonly Regex FracturedRegex = new Regex(@"\<fractured\>\{([^\n]*\n[^\n]*)(?:\n\<italic\>\{[^\n]*\})?\}(?=\n|$)", RegexOptions.Compiled);
 
         private static string RemoveFractured(string x)
         {
-            return FracturedRegex.Replace(x, "$1\n");
+            return FracturedRegex.Replace(x, "$1");
         }
 
         private void ParseItemHover(Element tooltip, Element extendedModsElement)
         {
             _mods.Clear();
-            var extendedModsStr =
-                NativeStringReader.ReadString(extendedModsElement.Address + EntityLabelMapOffsets.LabelOffset, tooltip.M, 5000);
+            var extendedModsStr = extendedModsElement.GetText(2500);
             var extendedModsLines = RemoveFractured(extendedModsStr.Replace("\r\n", "\n")).Split('\n');
 
-            var regularModsStr =
-                NativeStringReader.ReadString(_regularModsElement.Address + EntityLabelMapOffsets.LabelOffset, tooltip.M, 5000);
-            var regularModsLines = RemoveFractured(regularModsStr.Replace("\r\n", "\n")).Split('\n');
+            var regularModsStr = _regularModsElement.GetTextWithNoTags(2500);
+            var regularModsLines = regularModsStr.Replace("\r\n", "\n").Split('\n');
 
             ModTierInfo currentModTierInfo = null;
 
