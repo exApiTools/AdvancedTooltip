@@ -19,7 +19,7 @@ namespace AdvancedTooltip
             AffixType = Record.AffixType;
             AffixText = string.IsNullOrEmpty(Record.UserFriendlyName) ? Record.Key : Record.UserFriendlyName;
             IsCrafted = Record.Domain == ModDomain.Master;
-            StatValue = new[] {mod.Value1, mod.Value2, mod.Value3, mod.Value4};
+            StatValue = mod.Values.ToArray();
             Tier = -1;
             var subOptimalTierDistance = 0;
 
