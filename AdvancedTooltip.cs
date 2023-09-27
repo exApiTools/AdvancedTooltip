@@ -106,7 +106,7 @@ namespace AdvancedTooltip
                 var bottomTooltip = tooltipRect.Bottom + 5;
                 var modPosition = new Vector2(tooltipRect.X + 20, bottomTooltip + 4);
 
-                var height = mods.Where(x => x.Record.StatNames.Count(y => y != null) > 0)
+                var height = mods.Where(x => x.Record.StatNames.Any(y => y != null))
                                  .Aggregate(modPosition, (position, item) => DrawMod(item, position)).Y -
                              bottomTooltip;
 
@@ -198,13 +198,9 @@ namespace AdvancedTooltip
             }
 
             var longestValueLength = Graphics.MeasureText("+12345").X;
-            for (var i = 0; i < 4; i++)
+            foreach (var (stat, range, value) in item.Record.StatNames.Zip(item.Record.StatRange, item.StatValue))
             {
-                var range = item.Record.StatRange[i];
                 if (range.Min == 0 && range.Max == 0) continue;
-
-                var stat = item.Record.StatNames[i];
-                var value = item.StatValue[i];
                 if (value <= -1000 || stat == null) continue;
 
                 var noSpread = !range.HasSpread();
@@ -245,16 +241,12 @@ namespace AdvancedTooltip
 
             foreach (var mod in modValues)
             {
-                for (var iStat = 0; iStat < 4; iStat++)
+                foreach (var (stat, range, value) in mod.Record.StatNames.Zip(mod.Record.StatRange, mod.StatValue))
                 {
-                    var range = mod.Record.StatRange[iStat];
                     if (range.Min == 0 && range.Max == 0) continue;
+                    if (stat == null) continue;
 
-                    var theStat = mod.Record.StatNames[iStat];
-                    if (theStat == null) continue;
-                    var value = mod.StatValue[iStat];
-
-                    switch (theStat.Key)
+                    switch (stat.Key)
                     {
                         case "physical_damage_+%":
                         case "local_physical_damage_+%":
