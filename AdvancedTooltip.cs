@@ -329,6 +329,8 @@ namespace AdvancedTooltip
             }
 
             var textPosition = new Vector2(clientRect.Right - 15, clientRect.Y + 1);
+            Graphics.DrawImage("preload-end.png", new RectangleF(textPosition.X - 100, textPosition.Y - 6, 100, 78),
+                settings.BackgroundColor);
             var pDpsSize = pDps > 0
                 ? Graphics.DrawText(pDps.ToString("#.#"), textPosition, FontAlign.Right)
                 : Vector2.Zero;
@@ -347,9 +349,6 @@ namespace AdvancedTooltip
 
             var dpsTextPosition = textPosition.Translate(0, pDpsSize.Y + eDpsSize.Y + dpsSize.Y);
             Graphics.DrawText("dps", dpsTextPosition, settings.TextColor, FontAlign.Right);
-
-            Graphics.DrawImage("preload-end.png", new RectangleF(textPosition.X - 100, textPosition.Y - 6, 100, 78),
-                settings.BackgroundColor);
         }
     }
 }
