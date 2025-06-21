@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using AdvancedTooltip.Settings;
 using ExileCore;
@@ -103,11 +104,17 @@ public class FastModsModule
         for (var i = modsRoot.Children.Count - 1; i >= 0; i--)
         {
             var element = modsRoot.Children[i];
-            var elementText = element.Text;
+            if (element.ChildCount is > 2 or 0)
+            {
+                continue;
+            }
+
+            var textElements = GetExtendedModsTextElements(element);
+            var elementText = textElements.FirstOrDefault()?.Text;
             if (!string.IsNullOrEmpty(elementText) &&
                 (elementText.StartsWith("<smaller>", StringComparison.Ordinal) ||
                  elementText.StartsWith("<fractured>{<smaller>", StringComparison.Ordinal)) &&
-                !element.TextNoTags.StartsWith("Allocated Crucible", StringComparison.Ordinal))
+                element.TextNoTags?.StartsWith("Allocated Crucible", StringComparison.Ordinal) != true)
             {
                 extendedModsElement = element;
                 regularModsElement = modsRoot.Children[i - 1];
@@ -130,6 +137,11 @@ public class FastModsModule
         }
     }
 
+    private static List<Element> GetExtendedModsTextElements(Element element)
+    {
+        return element.Children.SelectMany(x => x.Children).Where(x => x.ChildCount == 1).Select(x => x[0]).Where(x => x != null).ToList();
+    }
+
     private static readonly Regex FracturedRegex = new Regex(@"\<fractured\>\{([^\n]*\n[^\n]*)(?:\n\<italic\>\{[^\n]*\})?\}(?=\n|$)", RegexOptions.Compiled);
 
     private static string RemoveFractured(string x)
@@ -140,7 +152,7 @@ public class FastModsModule
     private void ParseItemHover(Element tooltip, Element extendedModsElement)
     {
         _mods.Clear();
-        var extendedModsStr = extendedModsElement.GetText(2500);
+        var extendedModsStr = string.Join("\n", GetExtendedModsTextElements(extendedModsElement).Select(x=>x.Text));
         var extendedModsLines = RemoveFractured(extendedModsStr.Replace("\r\n", "\n")).Split('\n');
 
         var regularModsStr = _regularModsElement.GetTextWithNoTags(2500);
